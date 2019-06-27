@@ -105,8 +105,8 @@
   register: service_step
 
 - name: Load Bamboo agent service
-  shell: "launchctl load /Library/LaunchDaemons/com.atlassian.bamboo-agent.plist"
-  when: service_step.changed
+  shell: "launchctl unload /Library/LaunchDaemons/com.atlassian.bamboo-agent.plist && launchctl load /Library/LaunchDaemons/com.atlassian.bamboo-agent.plist"
+  when: (install_step.changed or capabilities_step.changed or startup_step.changed or service_step.changed or bamboo.agent.restart)
 
 - name: Check if Bamboo agent running
   shell: ps -ef | grep com.atlassian.bamboo.agent | grep -v grep | wc -l | tr -s ' '
@@ -121,6 +121,7 @@
 
 - name: stop-bamboo-agent
   shell: "launchctl stop com.atlassian.bamboo-agent"
+  become: yes
   register: bamboo_is_stopping
   when: bamboo_is_running.changed and bamboo_is_running.stdout != ' 0'
 
@@ -128,9 +129,17 @@
     seconds: 30
   when: bamboo_is_stopping.changed
 
-- name: start-bamboo-agent
-  shell: "launchctl start com.atlassian.bamboo-agent"
-  when: bamboo_is_running.changed
+# - name: start-bamboo-agent
+#   shell: "launchctl start com.atlassian.bamboo-agent"
+#   when: bamboo_is_running.changed
+
+- name: Setup daily job for cleaning build directory
+  cron:
+    name: "bamboo-agent-build-dir-cleanup"
+    minute: "00"
+    hour: "23"
+    job: '"find {{ bamboo_home_path }}/xml-data/build-dir/ ! -path *repositoryData -type d -depth 1 -mtime +2 -exec rm -rf {} \;"'
+    # state: absent
 
 # - name: Add Bamboo agent service to the system
 #   file:

@@ -5,6 +5,6 @@ bamboo:
       java: "/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home"
       home: bamboo-agent-home
       install: bamboo-agent
-    restart: yes
+    restart: no
     server_url: https://bamboo.example.com/agentServer/
     version: 6.9.1
